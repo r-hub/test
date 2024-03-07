@@ -72,10 +72,11 @@ jobs:
         with:
           token: ${{ secrets.RHUB_TOKEN }}
           job-config: ${{ matrix.config.job-config }}
-      - uses: r-hub/rhub2/actions/rhub-run-check@v1
+      - uses: r-hub/rhub2/actions/rhub-run-check@main
         with:
           token: ${{ secrets.RHUB_TOKEN }}
           job-config: ${{ matrix.config.job-config }}
+          remove-dot-github: true
 
   other-platforms:
     needs: [ setup, update-repo ]
@@ -103,7 +104,8 @@ jobs:
         with:
           job-config: ${{ matrix.config.job-config }}
           token: ${{ secrets.RHUB_TOKEN }}
-      - uses: r-hub/rhub2/actions/rhub-run-check@v1
+      - uses: r-hub/rhub2/actions/rhub-run-check@main
         with:
           job-config: ${{ matrix.config.job-config }}
           token: ${{ secrets.RHUB_TOKEN }}
+          remove-dot-github: true
