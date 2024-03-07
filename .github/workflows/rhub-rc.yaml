@@ -35,8 +35,10 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Set output
         id: set-output
+        env:
+          REF: ${{ steps.update-step.outputs.ref }}
         run: |
-          echo "ref=${{ steps.update-step.outputs.ref }}" >> "$GITHUB_OUTPUT"
+          echo "ref=$REF" >> "$GITHUB_OUTPUT"
           cat "$GITHUB_OUTPUT"
 
   setup:
