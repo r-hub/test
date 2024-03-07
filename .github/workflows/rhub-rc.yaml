@@ -96,8 +96,10 @@ jobs:
 
     steps:
       - name: Check output ref
+        env:
+          REF: ${{ needs.update-repo.outputs.ref }}
         run: |
-          echo ref: ${{ needs.update-repo.outputs.ref }}
+          echo ref: $REF
           exit 1
         shell: bash
       - uses: r-hub/rhub2/actions/rhub-checkout@main
