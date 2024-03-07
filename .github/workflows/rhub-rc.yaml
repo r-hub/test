@@ -88,13 +88,6 @@ jobs:
         config: ${{ fromJson(needs.setup.outputs.platforms) }}
 
     steps:
-      - name: Check output ref
-        env:
-          REF: ${{ needs.update-repo.outputs.ref }}
-        run: |
-          echo ref: $REF
-          exit 1
-        shell: bash
       - uses: r-hub/rhub2/actions/rhub-checkout@main
         with:
           ref: ${{ needs.update-repo.outputs.ref }}
