@@ -25,7 +25,7 @@ jobs:
     permissions:
       contents: write
     outputs:
-      ref: ${{ steps.set-output.outputs.ref }}
+      ref: ${{ steps.update-step.outputs.ref }}
     steps:
       - uses: r-hub/update-repo-from-url@v1
         id: update-step
@@ -33,13 +33,6 @@ jobs:
           url: ${{ github.event.inputs.url }}
           ignore-top-directory: true
           token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Set output
-        id: set-output
-        env:
-          REF: ${{ steps.update-step.outputs.ref }}
-        run: |
-          echo "ref=$REF" >> "$GITHUB_OUTPUT"
-          cat "$GITHUB_OUTPUT"
 
   setup:
     needs: update-repo
