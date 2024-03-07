@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 
 #include "common.h"
 
@@ -33,7 +34,7 @@ SEXP write_tiff(SEXP image, SEXP where, SEXP sBPS, SEXP sCompr, SEXP sReduce) {
     int native = 0, raw_array = 0, bps = asInteger(sBPS), compression = asInteger(sCompr),
 	reduce = asInteger(sReduce),
 	img_index = 0, n_img = 1;
-    uint32 width, height, planes = 1;
+    uint32_t width, height, planes = 1;
 
     if (TYPEOF(image) == VECSXP) {
 	if ((n_img = LENGTH(image)) == 0) {
@@ -57,7 +58,7 @@ SEXP write_tiff(SEXP image, SEXP where, SEXP sBPS, SEXP sCompr, SEXP sReduce) {
 	const char *fn;
 	if (TYPEOF(where) != STRSXP || LENGTH(where) < 1) Rf_error("invalid filename");
 	fn = CHAR(STRING_ELT(where, 0));
-	f = fopen(fn, "wb");
+	f = fopen(fn, "w+b");
 	if (!f) Rf_error("unable to create %s", fn);
 	rj.f = f;
     }
@@ -127,7 +128,7 @@ SEXP write_tiff(SEXP image, SEXP where, SEXP sBPS, SEXP sCompr, SEXP sReduce) {
 		    reduce = 0;
 		else { /* we only reduce to RGB, GA or G */
 		    int out_spp = ((an & HAS_ALPHA) ? 1 : 0 ) + ((an & IS_RGB) ? 3 : 1);
-		    uint32 i = 1, n = width * height;
+		    uint32_t i = 1, n = width * height;
 		    tdata_t buf;
 		    unsigned char *data8;
 		    const unsigned int *nd = (const unsigned int*) INTEGER(image);
@@ -177,13 +178,18 @@ SEXP write_tiff(SEXP image, SEXP where, SEXP sBPS, SEXP sCompr, SEXP sReduce) {
 		TIFFWriteEncodedStrip(tiff, 0, INTEGER(image), width * height * 4);
 	    }
 	} else {
-	    uint32 x, y, pl;
+	    uint32_t x, y, pl;
 	    tdata_t buf;
 	    unsigned char *data8;
 	    unsigned short *data16;
 	    unsigned int *data32;
-	    float *dataf;
 	    double *ra = REAL(image);
+	    uint32_t i, N = LENGTH(image);
+	    for (i = 0; i < N; i++) /* do a pre-flight check */
+		if (ra[i] < 0.0 || ra[i] > 1.0) {
+		    Rf_warning("The input contains values outside the [0, 1] range - storage of such values is undefined");
+		    break;
+		}
 	    TIFFSetField(tiff, TIFFTAG_BITSPERSAMPLE, bps);
 	    TIFFSetField(tiff, TIFFTAG_SAMPLESPERPIXEL, planes);
 	    TIFFSetField(tiff, TIFFTAG_ROWSPERSTRIP, height);
@@ -193,7 +199,6 @@ SEXP write_tiff(SEXP image, SEXP where, SEXP sBPS, SEXP sCompr, SEXP sReduce) {
 	    data8 = (unsigned char*) buf;
 	    data16 = (unsigned short*) buf;
 	    data32 = (unsigned int*) buf;
-	    dataf = (float*) buf;
 	    if (!buf)
 		Rf_error("cannot allocate output image buffer");
 	    if (bps == 8)
@@ -205,15 +210,19 @@ SEXP write_tiff(SEXP image, SEXP where, SEXP sBPS, SEXP sCompr, SEXP sReduce) {
 		for (y = 0; y < height; y++)
 		    for (x = 0; x < width; x++)
 			for (pl = 0; pl < planes; pl++)
-			    data16[(x + y * width) * planes + pl] = (unsigned char) (ra[y + x * height + pl * width * height] * 65535.0);
+			    data16[(x + y * width) * planes + pl] = (unsigned short) (ra[y + x * height + pl * width * height] * 65535.0);
+	    else if (bps == 32)
+		for (y = 0; y < height; y++)
+		    for (x = 0; x < width; x++)
+			for (pl = 0; pl < planes; pl++)
+			    data32[(x + y * width) * planes + pl] = (unsigned int) (ra[y + x * height + pl * width * height] * 4294967295.0);
 	    TIFFWriteEncodedStrip(tiff, 0, buf, width * height * planes * (bps / 8));
 	    _TIFFfree(buf);
 	}
 
-	if (!img_list)
-	    break;
-	else if (img_index < n_img)
+	if (img_list && img_index < n_img)
 	    TIFFWriteDirectory(tiff);
+	else break;
     }
     if (!rj.f) {
 	SEXP res;
