@@ -25,15 +25,20 @@ jobs:
     permissions:
       contents: write
     outputs:
-      ref: ${{ steps.update-repo.outputs.ref }}
+      ref: ${{ steps.set-output.outputs.ref }}
     steps:
       - uses: r-hub/update-repo-from-url@v1
-        id: update-repo
+        id: update-step
         with:
           url: ${{ github.event.inputs.url }}
           ignore-top-directory: true
           token: ${{ secrets.GITHUB_TOKEN }}
-    
+      - name: Set output
+        id: set-output
+        run: |
+          echo "ref=${{ steps.update-step.outputs.ref }}" >> "$GITHUB_OUTPUT"
+          cat "$GITHUB_OUTPUT"
+
   setup:
     needs: update-repo
     runs-on: ubuntu-latest
@@ -91,6 +96,7 @@ jobs:
       - name: Check output ref
         run: |
           echo ref: ${{ needs.update-repo.outputs.ref }}
+          exit 1
         shell: bash
       - uses: r-hub/rhub2/actions/rhub-checkout@main
         with:
