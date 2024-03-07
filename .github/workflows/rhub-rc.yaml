@@ -78,7 +78,7 @@ jobs:
           job-config: ${{ matrix.config.job-config }}
 
   other-platforms:
-    needs: setup
+    needs: [ setup, update-repo ]
     if: ${{ needs.setup.outputs.platforms != '[]' }}
     runs-on: ${{ matrix.config.os }}
     name: ${{ matrix.config.label }}
